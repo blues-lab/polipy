@@ -1,0 +1,16 @@
+beautifulsoup4==4.9.3
+certifi==2020.12.5
+cffi==1.14.5
+chardet==4.0.0
+cryptography==3.4.7
+filelock==3.0.12
+idna==2.10
+pdfminer.six==20201018
+pycparser==2.20
+requests==2.25.1
+requests-file==1.5.1
+selenium==3.141.0
+six==1.15.0
+sortedcontainers==2.3.0
+soupsieve==2.2.1
+urllib3==1.26.4
