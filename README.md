@@ -1,5 +1,5 @@
-# policy-scraper
-Library for scraping and parsing policy. (TODO)
+# polipy
+PoliPy is a library for scraping and parsing privacy policy. (TODO)
 
 ## Installation
 
@@ -40,10 +40,10 @@ Results:
 ## Usage
 Available class and class-level methods:
 - [Policy](#Policy): A class representing a privacy policy.
-- [Policy.parse_url](#.parse_url): Obtains additional information about the privacy policy URL.
-- [Policy.scrape](#.scrape): Obtains the page source of the given privacy policy URL.
-- [Policy.extract](#.extract): Extracts the text from the page source of the privacy policy.
-- [Policy.to_dict](#.to_dict): Converts the `Policy` object to a dictionary.
+- [Policy.parse_url](#Policy.parse_url): Obtains additional information about the privacy policy URL.
+- [Policy.scrape](#Policy.scrape): Obtains the page source of the given privacy policy URL.
+- [Policy.extract](#Policy.extract): Extracts the text from the page source of the privacy policy.
+- [Policy.to_dict](#Policy.to_dict): Converts the `Policy` object to a dictionary.
 
 Available module-level methods:
 - [get_policy](#get_policy): Helper method that returns a `Policy` object that contains information about the policy scraped and processed from the given URL.
@@ -78,7 +78,7 @@ Results:
 )
 ```
 
-### .parse_url
+### Policy.parse_url
 
 Obtains additional information about the privacy policy URL, including content-type, domain, scheme, path, etc. Populates the `Policy.url_meta` attribute. Parameters:
 
@@ -109,7 +109,7 @@ Results:
 }
 ```
 
-### .scrape
+### Policy.scrape
 
 Obtains the page source of the given privacy policy URL. Populates the `Policy.source` attribute. Parameters:
 
@@ -140,7 +140,7 @@ Results:
   ...
 ```
 
-### .extract
+### Policy.extract
 
 Extracts the text from the page source of the privacy policy. Populates the `Policy.content` attribute. Parameters:
 
@@ -168,7 +168,7 @@ Getting started
 ...
 ```
 
-### .to_dict
+### Policy.to_dict
 
 Retrieves the full detail of an application. Parameters:
 
