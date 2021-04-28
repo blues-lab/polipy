@@ -40,7 +40,6 @@ Results:
 ## Usage
 Available class and class-level methods:
 - [Policy](#Policy): A class representing a privacy policy.
-- [Policy.parse_url](#Policy.parse_url): Obtains additional information about the privacy policy URL.
 - [Policy.scrape](#Policy.scrape): Obtains the page source of the given privacy policy URL.
 - [Policy.extract](#Policy.extract): Extracts the text from the page source of the privacy policy.
 - [Policy.to_dict](#Policy.to_dict): Converts the `Policy` object to a dictionary.
@@ -76,37 +75,6 @@ Results:
     'content': None
   }
 )
-```
-
-### Policy.parse_url
-
-Obtains additional information about the privacy policy URL, including content-type, domain, scheme, path, etc. Populates the `Policy.url_meta` attribute. Parameters:
-
-* this method has no parameters
-
-Example:
-
-```python
-import polipy
-
-url = 'https://docs.github.com/en/github/site-policy/github-privacy-statement'
-policy = polipy.Policy(url=url).parse_url()
-
-print(policy.url_meta)
-```
-
-Results:
-
-```python
-{
-  'scheme': 'https',
-  'domain': 'docs.github.com',
-  'path': '/en/github/site-policy/github-privacy-statement',
-  'params': '',
-  'query': '',
-  'fragment': '',
-  'type': 'html'
-}
 ```
 
 ### Policy.scrape
@@ -180,7 +148,7 @@ Example:
 import polipy
 
 url = 'https://docs.github.com/en/github/site-policy/github-privacy-statement'
-result = polipy.Policy(url=url).parse_url().scrape().extract().to_dict()
+result = polipy.Policy(url=url).scrape().extract().to_dict()
 
 print(result)
 ```

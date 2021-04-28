@@ -33,7 +33,7 @@ class Policy:
         """
         self.url = url
 
-    def parse_url(self):
+    def _parse_url(self):
         """
         Obtains additional information about the privacy policy URL,
         including content-type, domain, scheme, path, etc.
@@ -77,6 +77,7 @@ class Policy:
         NetworkIOException
             Raised if an error occured while performing networking I/O.
         """
+        self._parse_url()
         if self.url_meta['type'] == 'html':
             self.source = scrape_html(self.url, timeout)
         else:
@@ -128,7 +129,7 @@ class Policy:
         return '{}({})'.format(self.__class__, self.to_dict())
 
 # Public module methods.
-def get_policy(url):
+def get_policy(url, **kwargs):
     """
     Helper method that returns a `polipy.Policy` object containing
     information about the policy, scraped and processed from the given URL.
@@ -137,6 +138,9 @@ def get_policy(url):
     ----------
     url : str
         The URL of the privacy policy.
+
+    **kwargs : dict
+        Keyword arguments.
 
     Returns
     -------
@@ -153,7 +157,6 @@ def get_policy(url):
         Raised if an error occured while extracting text from page source.
     """
     policy = Policy(url)
-    policy.parse_url()
     policy.scrape()
     policy.extract()
     return policy
