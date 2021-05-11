@@ -1,22 +1,55 @@
 # polipy
-PoliPy is a library for scraping and parsing privacy policy. (TODO)
+PoliPy is a Python library that provides a command-line interface (CLI) and an API to scrape, parse, and analyze privacy policies of different services. It is a maintained library developed as a collaborative effort of researchers at the Berkeley Lab for Usable and Experimental Security (BLUES) at University of California, Berkeley.
+
+Please read carefully to learn more about properly [citing](#Citations) this library and the [GNU GPLv3](https://choosealicense.com/licenses/gpl-3.0/) terms that govern the usage and modification of this software.
 
 ## Installation
 
-TODO
+You can easily install the library using `pip`:
+
+```bash
+pip install polipy
+```
 
 ## Example
+
+This library can either be used as a command-line interface (CLI):
+
+```bash
+$ cat policies.txt
+https://docs.github.com/en/github/site-policy/github-privacy-statement
+
+$ python -m polipy policies.txt -s
+```
+
+or as an API imported by another module:
 
 ```python
 import polipy
 
 url = 'https://docs.github.com/en/github/site-policy/github-privacy-statement'
-result = polipy.get_policy(url)
+result = polipy.get_policy(url, screenshot=True)
 
-print(result.content)
+result.save(output_dir='.')
 ```
 
-Results:
+Both of these result in the creation of the following output folder:
+
+```bash
+├── docs_github_com_c0eb432555
+│   ├── 20210511.html
+│   ├── 20210511.png
+│   ├── 20210511.json
+├── └── 20210511.meta
+```
+where the base file name corresponds to the date the policy was scraped and the file extensions correspond to the following:
+
+* `.html` contains the (dynamic) source of the webpage where privacy policy is hosted
+* `.png` contains the screenshot of the webpage
+* `.meta` contains information such as the URL of the privacy policy and the date of last scraping
+* `.json` contains the content extracted from the privacy policy.
+
+For instance, the `text` key of the JSON in the `.json` file contains the extracted text from the scraped privacy policy:
 
 ```
   GitHub Privacy Statement - GitHub Docs
@@ -38,185 +71,140 @@ Results:
 ```
 
 ## Usage
-Available class and class-level methods:
-- [Policy](#Policy): A class representing a privacy policy.
-- [Policy.scrape](#Policy.scrape): Obtains the page source of the given privacy policy URL.
-- [Policy.extract](#Policy.extract): Extracts the text from the page source of the privacy policy.
-- [Policy.to_dict](#Policy.to_dict): Converts the `Policy` object to a dictionary.
+CLI usage manual is available with the `--help` or `-h` flag:
 
-Available module-level methods:
-- [get_policy](#get_policy): Helper method that returns a `Policy` object that contains information about the policy scraped and processed from the given URL.
+<!-- ```bash
+$ python -m polipy --help
+usage: __main__.py [-h] [--output_dir OUTPUT_DIR] [--timeout TIMEOUT] [--screenshot] [--extractors EXTRACTORS [EXTRACTORS ...]] [--workers WORKERS] [--force] [--raise_errors] [--verbose] input_file
+
+Download privacy policies from URLs contained in the input_file.
+
+positional arguments:
+  input_file            Path to file containing a list of newline-separated URLs of privacy policies to scrape.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --output_dir OUTPUT_DIR, -o OUTPUT_DIR
+                        Path to directory where policies will be saved (default is ...).
+  --timeout TIMEOUT, -t TIMEOUT
+                        The amount of time in seconds to wait for the HTTP request response (default is 30).
+  --screenshot, -s      Capture and save the screenshot of the privacy policy page (default is False).
+  --extractors EXTRACTORS [EXTRACTORS ...], -e EXTRACTORS [EXTRACTORS ...]
+                        Extractors to use to capture information from the privacy policy (default is [text]).
+  --workers WORKERS, -w WORKERS
+                        Number of threading workers to use (default is 1).
+  --force, -f           Scrape privacy policy again even if it is already scraped or has not been updated (default is False).
+  --raise_errors, -r    Raise errors that occur during the scraping and parsing (default is False).
+  --verbose, -v         Enable verbose logging (default is False).
+``` -->
+
+The following helper methods are available when the PoliPy library is imported:
+- [get_policy](#get_policy): Helper method that returns a `polipy.Policy` object containing
+  information about the policy, scraped and processed from the given URL.
+- [download_policy](#download_policy): Helper method that scrapes, parses, and saves the privacy policy located at the provided <url>.
+
+Additionally, you can directly create `polipy.Policy` objects supporting the following interface:
+
+- [Policy.\_\_init\_\_](#Policy): Constructor method.
+- [Policy.scrape](#scrape): Obtains the page source of the given privacy policy URL.
+- [Policy.extract](#extract): Extracts information from the scraped privacy policy.
+- [Policy.save](#save): Saves the information contained in the `Policy` object.
+- [Policy.to_dict](#to_dict): Converts the `Policy` object to a dictionary.
+
+### get_policy
+Helper method that returns a `polipy.Policy` object containing information about the policy, scraped and processed from the given URL.
+
+Parameters:
+* `url (str)`: The URL of the privacy policy.
+* `screenshot (bool, optional)`: Flag that indicates whether to capture and save the screenshot of the privacy policy page (default is `False`).
+* `timeout (int, optional)`: The amount of time in seconds to wait for the HTTP request response (default is `30`).
+* `extractors (list of str, optional)`: Extractors to use to capture information from the privacy policy (default is `["text"]`).
+
+Returns:
+* `polipy.Policy`: Object containing information about the privacy policy.
+
+Raises:
+* `polipy.NetworkIOException`: Raised if an error has occured while performing networking I/O.
+
+### download_policy
+Helper method that scrapes, parses, and saves the privacy policy located at the provided `url` by creating the following directory structure:
+```
+├── <output_dir>
+│   ├── <policy URL domain>_<hash of policy URL>
+│   │   ├── <current UTC date>.html
+│   │   ├── <current UTC date>.json
+└── └── └── <current UTC date>.meta
+```
+
+Parameters:
+* `url (str)`: The URL of the privacy policy.
+* `output_dir (str, optional)` Path to directory where the policy will be saved (default is the current working directory).
+* `force (bool, optional)`: Flag that indicates whether to scrape privacy policy again even if it is already scraped or has not been updated (default is `False`).
+* `raise_errors (bool, optional)`: Flag that indicates whether to raise errors that occur during the scraping and parsing (default is `False`).
+* `logger (logging.Logger, optional)`: A `logging.Logger` object to handle the logging of events (default is `None`).
+* `screenshot (bool, optional)`: Flag that indicates whether to capture and save the screenshot of the privacy policy page (default is `False`).
+* `timeout (int, optional)`: The amount of time in seconds to wait for the HTTP request response (default is `30`).
+* `extractors (list of str, optional)`: Extractors to use to capture information from the privacy policy (default is `["text"]`).
+
+Raises:
+* `polipy.NetworkIOException`: Raised if an error has occured while performing networking I/O.
+* `polipy.ParserException`: Raised if an error occured while extracting text from page source.
 
 ### Policy
 
-A class representing a privacy policy. Parameters:
+A class representing a privacy policy. Attributes:
 
-* `url`: The URL of the privacy policy.
+* `url (dict)`: Contains the URL to the privacy policy and additional information about the URL, such as domain, scheme, content-type, etc.
+* `source (dict)`: Contains the information scraped from the webpage where policy is hosted, such as the HTML (dynamic) source and the screenshot.
+* `content (dict)`: Contains the content extracted from the privacy policy website, such as the text of the policy.
 
-Example:
+#### \_\_init\_\_
+Constructor method. Populates the `Policy.url` attribute. Parameters:
 
-```python
-import polipy
+* `url (str)`: The URL of the privacy policy.
 
-url = 'https://docs.github.com/en/github/site-policy/github-privacy-statement'
-policy = polipy.Policy(url=url)
-
-print(policy)
-```
-
-Results:
-
-```python
-<class 'polipy.polipy.Policy'>(
-  {
-    'url': 'https://docs.github.com/en/github/site-policy/github-privacy-statement',
-    'url_meta': None,
-    'source': None,
-    'content': None
-  }
-)
-```
-
-### Policy.scrape
-
+#### scrape
 Obtains the page source of the given privacy policy URL. Populates the `Policy.source` attribute. Parameters:
 
-* `timeout`: The amount of time in seconds to wait for response (default is 30).
+* `screenshot (bool, optional)`: Flag that indicates whether to capture and save the screenshot of the privacy policy page (default is `False`).
+* `timeout (int, optional)`: The amount of time in seconds to wait for the HTTP request response (default is `30`).
 
-Example:
+Returns:
+* `polipy.Policy`: `Policy` object with the populated attribute.
 
-```python
-import polipy
+Raises:
+* `polipy.NetworkIOException`: Raised if an error has occured while performing networking I/O.
 
-url = 'https://docs.github.com/en/github/site-policy/github-privacy-statement'
-policy = polipy.Policy(url=url).parse_url().scrape()
+#### extract
+Extracts information from the scraped privacy policy. Populates the `Policy.content` attribute. Parameters:
 
-print(policy.source)
-```
+* `extractors (list of str, optional)`: Extractors to use to capture information from the privacy policy (default is `["text"]`).
 
-Results:
+Returns:
+* `polipy.Policy`: `Policy` object with the populated attribute.
 
-```html
-<html lang="en"><head>
+Raises:
+* `polipy.ParserException`: Raised if an error occured while extracting text from page source.
 
-  <meta charset="utf-8">
-  <title>GitHub Privacy Statement - GitHub Docs</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="alternate icon" type="image/png" href="/assets/images/site/favicon.png">
-  <link rel="icon" type="image/svg+xml" href="/assets/images/site/favicon.svg">
-  <link rel="stylesheet" href="/dist/index.css?hash=a856c60c3b95778b47403dde9ef2fba5">
-  ...
-```
+#### save
+Saves the information contained in the `Policy` object. Parameters:
 
-### Policy.extract
+* `output_dir (str)`: Path to directory where the policy will be saved.
 
-Extracts the text from the page source of the privacy policy. Populates the `Policy.content` attribute. Parameters:
+#### to_dict
+Converts the `Policy` object to a dictionary. Returns:
 
-* this method has no parameters
-
-Example:
-
-```python
-import polipy
-
-url = 'https://docs.github.com/en/github/site-policy/github-privacy-statement'
-policy = polipy.Policy(url=url).parse_url().scrape().extract()
-
-print(policy.content)
-```
-
-Results:
-
-```python
-GitHub Privacy Statement - GitHub Docs
-GitHub Docs
-All products
-GitHub.com
-Getting started
-...
-```
-
-### Policy.to_dict
-
-Retrieves the full detail of an application. Parameters:
-
-* this method has no parameters
-
-Example:
-
-```python
-import polipy
-
-url = 'https://docs.github.com/en/github/site-policy/github-privacy-statement'
-result = polipy.Policy(url=url).scrape().extract().to_dict()
-
-print(result)
-```
-
-Results:
-
-```python
-{
-  'url': 'https://docs.github.com/en/github/site-policy/github-privacy-statement',
-  'url_meta': {
-    'scheme': 'https',
-    'domain':
-    'docs.github.com',
-    'path': '/en/github/site-policy/github-privacy-statement',
-    'params': '',
-    'query': '',
-    'fragment': '',
-    'type': 'html'
-  },
-  'source': '...',
-  'content': '...'
-}
-```
-
-### get_policy
-
-Helper method that returns a `polipy.Policy` object containing information about the policy, scraped and processed from the given URL. Parameters:
-
-
-* `url`: The URL of the privacy policy.
-
-Example:
-
-```python
-import polipy
-
-url = 'https://docs.github.com/en/github/site-policy/github-privacy-statement'
-result = polipy.get_policy(url)
-
-print(result)
-```
-
-Results:
-
-```python
-<class 'polipy.polipy.Policy'>(
-  {
-    'url': 'https://docs.github.com/en/github/site-policy/github-privacy-statement',
-    'url_meta': {
-      'scheme': 'https',
-      'domain':
-      'docs.github.com',
-      'path': '/en/github/site-policy/github-privacy-statement',
-      'params': '',
-      'query': '',
-      'fragment': '',
-      'type': 'html'
-    },
-    'source': '...',
-    'content': '...'
-  }
-)
-```
+* `dict`: Dictionary containing policy attributes as key-value pairs.
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
 Please make sure to update tests as appropriate.
+
+## Citations
+Any project that uses this library in part or in whole is required to acknowledge the usage of this library. For publications, the following citation can be used:
+
+>Samarin, N., Kothari, S., Siyed, Z., Wijesekera, P., Fischer, J., Hoofnagle, C. and Egelman, S., Investigating the Compliance of Android App Developers with the CCPA.  
 
 ## License
 [GNU GPLv3](https://choosealicense.com/licenses/gpl-3.0/)

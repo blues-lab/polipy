@@ -1,7 +1,7 @@
 from .networking import get_url_type, parse_url, scrape
 from .extractors import extract, extractors
 from .constants import UTC_DATE, CWD
-from .exceptions import NetworkIOException
+from .exceptions import NetworkIOException, ParserException
 from .logger import get_logger
 
 import os
@@ -17,21 +17,19 @@ class Policy:
 
     Attributes
     ----------
-    url : str
-        The URL to the privacy policy.
-    url_meta : dict or None
-        Additional information about the URL, such as domain, scheme, content-type, etc.
-    source : str or None
-        Policy page source.
-    content : str or None
-        Text of the policy extracted from the page source.
+    url : dict
+        Contains the URL to the privacy policy and additional information about the URL, such as domain, scheme, content-type, etc.
+    source : dict
+        Contains the information scraped from the webpage where policy is hosted, such as the HTML (dynamic) source and the screenshot.
+    content : dict
+        Contains the content extracted from the privacy policy website, such as the text of the policy.
     """
 
     url, source, content = {}, {}, {}
 
     def __init__(self, url):
         """
-        Constructor method.
+        Constructor method. Populates the `Policy.url` attribute.
 
         Parameters
         ----------
@@ -45,6 +43,10 @@ class Policy:
         # Generate the hash to avoid collisions in output file names.
         self.url['hash'] = hashlib.md5(url.encode()).hexdigest()[:10]
 
+        # Define the output directory name for this policy.
+        d, h = self.url['domain'].replace('.', '_'), self.url['hash']
+        self.output_dir = '{}_{}'.format(d, h)
+
     def scrape(self, timeout=30, **kwargs):
         """
         Obtains the page source of the given privacy policy URL.
@@ -53,8 +55,12 @@ class Policy:
 
         Parameters
         ----------
+        screenshot : bool, optional
+            Flag that indicates whether to capture and save the screenshot of the privacy policy page (default is `False`).
         timeout : int, optional
-            The amount of time in seconds to wait for response (default is 30).
+            The amount of time in seconds to wait for the HTTP request response (default is `30`).
+        **kwargs : dict
+            Additional keyword arguments.
 
         Returns
         -------
@@ -75,9 +81,16 @@ class Policy:
 
     def extract(self, extractors=['text'], **kwargs):
         """
-        Extracts content from the page source of the privacy policy.
+        Extracts information from the scraped privacy policy.
 
         Populates the `Policy.content` attribute.
+
+        Parameters
+        ----------
+        extractors : list of str, optional
+            Extractors to use to capture information from the privacy policy (default is ["text"]).
+        **kwargs : dict
+            Additional keyword arguments.
 
         Returns
         -------
@@ -103,21 +116,33 @@ class Policy:
 
     def save(self, output_dir, **kwargs):
         """
-        ...
+        Saves the information contained in the `Policy` object using the following directory structure:
 
-        Returns
-        -------
-        dict
-            Dictionary containing policy attributes as key-value pairs.
+        ├── <output_dir>
+        │   ├── <policy URL domain>_<hash of policy URL>
+        │   │   ├── <current UTC date>.html
+        │   │   ├── <current UTC date>.json
+        └── └── └── <current UTC date>.meta
+
+        Parameters
+        ----------
+        output_dir : str
+            Path to directory where the policy will be saved.
+        **kwargs : dict
+            Additional keyword arguments.
         """
+        # Create the output directory if it does not exist.
+        policy_output_dir = os.path.join(output_dir, self.output_dir)
+        pathlib.Path(policy_output_dir).mkdir(parents=True, exist_ok=True)
+
         # Define output formats.
         output = {
-            'html': os.path.join(output_dir, '{}.{}'.format(UTC_DATE, 'html')),
-            'png': os.path.join(output_dir, '{}.{}'.format(UTC_DATE, 'png')),
-            'json': os.path.join(output_dir, '{}.{}'.format(UTC_DATE, 'json')),
-            'pdf': os.path.join(output_dir, '{}.{}'.format(UTC_DATE, 'pdf')),
-            'txt': os.path.join(output_dir, '{}.{}'.format(UTC_DATE, 'txt')),
-            'meta': os.path.join(output_dir, '{}.{}'.format(UTC_DATE, 'meta')),
+            'html': os.path.join(policy_output_dir, '{}.{}'.format(UTC_DATE, 'html')),
+            'png': os.path.join(policy_output_dir, '{}.{}'.format(UTC_DATE, 'png')),
+            'json': os.path.join(policy_output_dir, '{}.{}'.format(UTC_DATE, 'json')),
+            'pdf': os.path.join(policy_output_dir, '{}.{}'.format(UTC_DATE, 'pdf')),
+            'txt': os.path.join(policy_output_dir, '{}.{}'.format(UTC_DATE, 'txt')),
+            'meta': os.path.join(policy_output_dir, '{}.{}'.format(UTC_DATE, 'meta')),
         }
 
         meta = {'last_scraped': UTC_DATE} | self.url
@@ -162,7 +187,7 @@ class Policy:
         return '{}({})'.format(self.__class__, self.to_dict())
 
 # Public module methods.
-def get_policy(url, screenshot=False, extractors=[], timeout=30, **kwargs):
+def get_policy(url, screenshot=False, timeout=30, extractors=['text'], **kwargs):
     """
     Helper method that returns a `polipy.Policy` object containing
     information about the policy, scraped and processed from the given URL.
@@ -171,14 +196,19 @@ def get_policy(url, screenshot=False, extractors=[], timeout=30, **kwargs):
     ----------
     url : str
         The URL of the privacy policy.
-
+    screenshot : bool, optional
+        Flag that indicates whether to capture and save the screenshot of the privacy policy page (default is `False`).
+    timeout : int, optional
+        The amount of time in seconds to wait for the HTTP request response (default is `30`).
+    extractors : list of str, optional
+        Extractors to use to capture information from the privacy policy (default is `["text"]`).
     **kwargs : dict
-        Keyword arguments.
+        Additional keyword arguments.
 
     Returns
     -------
     polipy.Policy
-        Object containing information about the page source and content.
+        Object containing information about the privacy policy.
         Please view documentation for `polipy.Policy` class for more information.
 
     Raises
@@ -194,22 +224,59 @@ def get_policy(url, screenshot=False, extractors=[], timeout=30, **kwargs):
     policy.extract(extractors=extractors)
     return policy
 
-# def download_policy(url, output_dir=CWD, force=False, skip_errors=True, verbose=False, **kwargs):
-def download_policy(url, output_dir=CWD, force=False, skip_errors=True, logger=None, **kwargs):
+def download_policy(url, output_dir=CWD, force=False, raise_errors=False, logger=None, **kwargs):
+    """
+    Helper method that scrapes, parses, and saves the privacy policy located at the provided `url`
+    by creating the following directory structure:
+
+    ├── <output_dir>
+    │   ├── <policy URL domain>_<hash of policy URL>
+    │   │   ├── <current UTC date>.html
+    │   │   ├── <current UTC date>.json
+    └── └── └── <current UTC date>.meta
+
+    Parameters
+    ----------
+    url : str
+        The URL of the privacy policy.
+    output_dir : str, optional
+        Path to directory where the policy will be saved (default is the current working directory).
+    force : bool, optional
+        Flag that indicates whether to scrape privacy policy again even if it is already scraped or has not been updated (default is `False`).
+    raise_errors : bool, optional
+        Flag that indicates whether to raise errors that occur during the scraping and parsing (default is `False`).
+    logger : logging.Logger, optional
+        A `logging.Logger` object to handle the logging of events (default is `None`).
+    screenshot : bool, optional
+        Flag that indicates whether to capture and save the screenshot of the privacy policy page (default is `False`).
+    timeout : int, optional
+        The amount of time in seconds to wait for the HTTP request response (default is `30`).
+    extractors : list of str, optional
+        Extractors to use to capture information from the privacy policy (default is `["text"]`).
+    **kwargs : dict
+        Additional keyword arguments.
+
+    Raises
+    ------
+    NetworkIOException
+        Raised if an error occured while performing networking I/O.
+
+    ParserException
+        Raised if an error occured while extracting text from page source.
+    """
     # Get handle on the logger object.
     logger = logger if logger is not None else logging.getLogger('polipy')
 
     # Get policy object with the associated URL.
     policy = Policy(url)
 
-    # Create the output directory if it does not exist.
-    d, h = policy.url['domain'].replace('.', '_'), policy.url['hash']
-    policy_output_dir = os.path.join(output_dir, '{}_{}'.format(d, h))
-    pathlib.Path(policy_output_dir).mkdir(parents=True, exist_ok=True)
+    # Get a handle on the output directory name for this policy.
+    policy_output_dir = os.path.join(output_dir, policy.output_dir)
+    files = os.listdir(policy_output_dir) if os.path.isdir(policy_output_dir) else []
 
     # Skip scraping if policy was already scraped today unless force flag is set.
-    files = [x for x in os.listdir(policy_output_dir) if x.split('.')[0] == UTC_DATE]
-    if len(files) > 0 and not force:
+    N = len([x for x in files if x.split('.')[0] == UTC_DATE])
+    if N > 0 and not force:
         logger.warning('Privacy policy was already scraped today from {} -- skipping.'.format(url))
         return
 
@@ -217,17 +284,17 @@ def download_policy(url, output_dir=CWD, force=False, skip_errors=True, logger=N
     try:
         policy.scrape(**kwargs)
     except NetworkIOException as e:
-        if skip_errors:
-            logger.warning('Encountered a network exception while scraping policy from {} -- skipping.\n{}'.format(url, e))
-            return
-        raise e from None
+        if raise_errors:
+            raise e from None
+        logger.warning('Encountered a network exception while scraping policy from {} -- skipping.\n{}'.format(url, e))
+        return
 
     # Extract information from policy.
     policy.extract(**kwargs)
 
     # Skip saving the file if the policy did not change unless force flag is set.
-    files = [x for x in os.listdir(policy_output_dir) if x.endswith('.json')]
-    if len(files) > 0 and not force:
+    N = len([x for x in files if x.endswith('.json')])
+    if N > 0 and not force:
         latest_file = sorted(files, key=lambda x: int(x.split('.')[0]))[-1]
         with open(os.path.join(policy_output_dir, latest_file), 'r') as f:
             last_policy = json.load(f)
@@ -235,5 +302,5 @@ def download_policy(url, output_dir=CWD, force=False, skip_errors=True, logger=N
             logger.warning('Privacy policy has not changed since {} for {} -- skipping.'.format(latest_file.split('.')[0], url))
             return
 
-    logger.info('Saving privacy policy obtained from {}.'.format(url))
-    policy.save(output_dir=policy_output_dir)
+    logger.info('Saving privacy policy obtained from {} to {}.'.format(url, os.path.abspath(policy_output_dir)))
+    policy.save(output_dir=output_dir)

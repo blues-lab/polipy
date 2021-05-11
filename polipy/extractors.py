@@ -25,7 +25,6 @@ def extract_text(url_type, url=None, dynamic_source=None, static_source=None, **
 
 def extract_pdf(source):
     f = BytesIO(source.encode())
-    # f = StringIO(source)
     text = parse_pdf(f)
     return text.strip()
 
