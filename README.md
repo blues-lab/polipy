@@ -1,5 +1,5 @@
 # polipy
-PoliPy is a Python library that provides a command-line interface (CLI) and an API to scrape, parse, and analyze privacy policies of different services. It is a maintained library developed as a collaborative effort of researchers at the Berkeley Lab for Usable and Experimental Security (BLUES) at University of California, Berkeley.
+PoliPy is a Python library that provides a command-line interface (CLI) and an API to scrape, parse, and analyze privacy policies of different services. It is a maintained library developed as a collaborative effort of researchers at the [Berkeley Lab for Usable and Experimental Security (BLUES)](https://blues.cs.berkeley.edu/) at the [University of California, Berkeley](https://www.berkeley.edu/).
 
 Please read carefully to learn more about properly [citing](#Citations) this library and the [GNU GPLv3](https://choosealicense.com/licenses/gpl-3.0/) terms that govern the usage and modification of this software.
 
@@ -73,7 +73,7 @@ For instance, the `text` key of the JSON in the `.json` file contains the extrac
 ## Usage
 CLI usage manual is available with the `--help` or `-h` flag:
 
-<!-- ```bash
+```bash
 $ python -m polipy --help
 usage: __main__.py [-h] [--output_dir OUTPUT_DIR] [--timeout TIMEOUT] [--screenshot] [--extractors EXTRACTORS [EXTRACTORS ...]] [--workers WORKERS] [--force] [--raise_errors] [--verbose] input_file
 
@@ -96,7 +96,7 @@ optional arguments:
   --force, -f           Scrape privacy policy again even if it is already scraped or has not been updated (default is False).
   --raise_errors, -r    Raise errors that occur during the scraping and parsing (default is False).
   --verbose, -v         Enable verbose logging (default is False).
-``` -->
+```
 
 The following helper methods are available when the PoliPy library is imported:
 - [get_policy](#get_policy): Helper method that returns a `polipy.Policy` object containing
