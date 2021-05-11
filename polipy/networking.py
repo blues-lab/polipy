@@ -4,14 +4,14 @@ from .exceptions import NetworkIOException
 
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, WebDriverException
 
-def get_url_type(url):
+def get_url_type(url, timeout):
     """
     https://stackoverflow.com/questions/38690586/determine-if-url-is-a-pdf-or-html-file
     """
     try:
-        r = requests.get(url)
+        r = requests.get(url, timeout=timeout)
     except requests.exceptions.RequestException as e:
         raise NetworkIOException(e) from None
     content_type = r.headers.get('content-type', '')
@@ -22,9 +22,9 @@ def get_url_type(url):
         url_type = 'html'
     elif 'text/plain' in content_type:
         url_type = 'plain'
-    elif content_type != '':
+    else:
         url_type = 'other'
-    return url_type, r.content
+    return url_type, r.content.decode(errors='ignore')
 
 def parse_url(url):
     parsed = urlparse(url)
@@ -38,17 +38,18 @@ def parse_url(url):
     }
     return result
 
-def scrape_html(url, timeout=30):
+def scrape(url, screenshot, timeout, **kwargs):
     options = Options()
     options.add_argument('-headless')
     options.add_argument('-private')
     driver = webdriver.Firefox(options=options)
     driver.set_page_load_timeout(timeout)
-    response = None
+    response = {}
     try:
         driver.get(url)
-        response = driver.page_source
-    except TimeoutException as e:
+        response['dynamic_html'] = driver.page_source
+        response['png'] = driver.get_screenshot_as_png() if screenshot else None
+    except (TimeoutException, WebDriverException) as e:
         raise NetworkIOException(e) from None
     finally:
         driver.quit()
