@@ -19,7 +19,7 @@ This library can either be used as a command-line interface (CLI):
 $ cat policies.txt
 https://docs.github.com/en/github/site-policy/github-privacy-statement
 
-$ python -m polipy policies.txt -s
+$ polipy policies.txt -s
 ```
 
 or as an API imported by another module:
@@ -74,7 +74,7 @@ For instance, the `text` key of the JSON in the `.json` file contains the extrac
 CLI usage manual is available with the `--help` or `-h` flag:
 
 ```bash
-$ python -m polipy --help
+$ polipy --help
 usage: __main__.py [-h] [--output_dir OUTPUT_DIR] [--timeout TIMEOUT] [--screenshot] [--extractors EXTRACTORS [EXTRACTORS ...]] [--workers WORKERS] [--force] [--raise_errors] [--verbose] input_file
 
 Download privacy policies from URLs contained in the input_file.
