@@ -11,6 +11,12 @@ You can easily install the library using `pip`:
 pip install polipy
 ```
 
+You might encounter the following prompt the first time you run PoliPy on MacOS (or a similar prompt on another OS):
+
+<img src="https://i.imgur.com/vI7Qrpy.png" width=300>
+
+This prompt appears as the library is making network requests to the webpages where privacy policy are hosted. Select `Allow` to continue. 
+
 ## Example
 
 This library can either be used as a command-line interface (CLI):
