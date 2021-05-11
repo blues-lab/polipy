@@ -38,7 +38,7 @@ def parse_url(url):
     }
     return result
 
-def scrape(url, screenshot, timeout, **kwargs):
+def scrape(url, screenshot, timeout):
     options = Options()
     options.add_argument('-headless')
     options.add_argument('-private')
