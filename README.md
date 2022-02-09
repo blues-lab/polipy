@@ -3,6 +3,11 @@ PoliPy is a Python library that provides a command-line interface (CLI) and an A
 
 Please read carefully to learn more about properly [citing](#Citations) this library and the [GNU GPLv3](https://choosealicense.com/licenses/gpl-3.0/) terms that govern the usage and modification of this software.
 
+## Prerequisites
+PoliPy uses `selenium` library to dynamically scrape webpages that host privacy policies. This allows PoliPy to download policies hosted on pages that, for instance, require JavaScript to be enabled. `Selenium` will open the webpage in a private window of Firefox Browser in the background using a `geckodriver` process, allowing the Python script to control the behavior of the browser without having the user interact with it directly. 
+
+To ensure that PoliPy works as intended, first make sure to install [the latest version of the Mozilla Firefox browser](https://www.mozilla.org/en-US/firefox/new/). Afterwards, download [the latest verison of geckodriver](https://github.com/mozilla/geckodriver/releases) for your operating system. You will need to ensure that the `geckodriver` is on the path and can be executed. Refer to [selenium Python API documentation](https://www.selenium.dev/selenium/docs/api/py/) for more information and troubleshooting.
+
 ## Installation
 
 You can easily install the library using `pip`:
