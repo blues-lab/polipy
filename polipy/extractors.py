@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 from io import BytesIO, StringIO
 from pdfminer.high_level import extract_text as parse_pdf
+from .constants import KEYWORDS
 
 extractors = [
     'text'
@@ -11,8 +12,10 @@ def extract(extractor, **kwargs):
         content = extract_text(**kwargs)
     return content
 
-def extract_text(url_type, url=None, dynamic_source=None, static_source=None, **kwargs):
-    if url_type is None or url_type in ['html', 'other']:
+def extract_text(url_type, url=None, dynamic_source=None, static_source=None, html_file=None, **kwargs):
+    if html_file is not None:
+        content = extract_ccpa_info(html_file)
+    elif url_type is None or url_type in ['html', 'other']:
         content = extract_html(dynamic_source, url)
     elif url_type == 'pdf':
         content = extract_pdf(static_source)
@@ -39,6 +42,25 @@ def extract_google_docs(source):
     chunks = [x.split('"},')[0].replace('\\n', '\n').replace('\\u000b', '\n') for x in chunks]
     text = ''.join(chunks).strip()
     return text
+
+def extract_ccpa_info(html_file):
+    with open(html_file) as fp:
+        soup = BeautifulSoup(fp, features="html.parser")
+        text = soup.get_text().lower()
+        result = ''
+        for category, values in KEYWORDS.items():
+            substring = category + ': '
+            for v in values:
+                if v in text:
+                    substring += v + ','
+                # words = v.split()
+                # if len(words) > 1:
+                #     for w in words:
+                #         if w in text:
+                #             substring += w + ','
+            result += substring + '\n'
+        print(result)
+        return result
 
 def extract_other(source):
     """

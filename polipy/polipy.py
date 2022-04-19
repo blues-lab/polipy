@@ -3,6 +3,7 @@ from .extractors import extract, extractors
 from .constants import UTC_DATE, CWD
 from .exceptions import NetworkIOException, ParserException
 from .logger import get_logger
+from bs4 import BeautifulSoup
 
 import os
 import json
@@ -27,7 +28,7 @@ class Policy:
 
     url, source, content = {}, {}, {}
 
-    def __init__(self, url):
+    def __init__(self, url, html_file=None):
         """
         Constructor method. Populates the `Policy.url` attribute.
 
@@ -39,6 +40,7 @@ class Policy:
         self.url['url'] = url
         self.url = self.url | parse_url(url)
         self.url['domain'] = self.url['domain'].strip().strip('.').strip('/')
+        self.html_file = html_file
 
         # Generate the hash to avoid collisions in output file names.
         self.url['hash'] = hashlib.md5(url.encode()).hexdigest()[:10]
@@ -107,6 +109,7 @@ class Policy:
             'url_type': self.url['type'],
             'static_source': self.source['static_html'],
             'dynamic_source': self.source['dynamic_html'],
+            'html_file': self.html_file
         }
         for extractor in extractors:
             content = extract(extractor, **vargs)
@@ -186,7 +189,7 @@ class Policy:
         return '{}({})'.format(self.__class__, self.to_dict())
 
 # Public module methods.
-def get_policy(url, screenshot=False, timeout=30, extractors=['text'], **kwargs):
+def get_policy(url, html_file=None, screenshot=False, timeout=30, extractors=['text'], **kwargs):
     """
     Helper method that returns a `polipy.Policy` object containing
     information about the policy, scraped and processed from the given URL.
@@ -195,6 +198,8 @@ def get_policy(url, screenshot=False, timeout=30, extractors=['text'], **kwargs)
     ----------
     url : str
         The URL of the privacy policy.
+    html_file : str
+        Relative location of HTML file to process.
     screenshot : bool, optional
         Flag that indicates whether to capture and save the screenshot of the privacy policy page (default is `False`).
     timeout : int, optional
@@ -218,7 +223,7 @@ def get_policy(url, screenshot=False, timeout=30, extractors=['text'], **kwargs)
     ParserException
         Raised if an error occured while extracting text from page source.
     """
-    policy = Policy(url)
+    policy = Policy(url, html_file)
     policy.scrape(screenshot=screenshot, timeout=timeout)
     policy.extract(extractors=extractors)
     return policy
