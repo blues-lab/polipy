@@ -1,14 +1,18 @@
 from bs4 import BeautifulSoup
 from io import BytesIO, StringIO
 from pdfminer.high_level import extract_text as parse_pdf
+from .constants import KEYWORDS
 
 extractors = [
-    'text'
+    'text',
+    'keywords'
 ]
 
 def extract(extractor, **kwargs):
     if extractor == 'text':
         content = extract_text(**kwargs)
+    elif extractor == 'keywords' and 'html_file' in kwargs and kwargs['html_file'] is not None:
+        content = extract_ccpa_info(kwargs['html_file'])
     return content
 
 def extract_text(url_type, url=None, dynamic_source=None, static_source=None, **kwargs):
@@ -39,6 +43,22 @@ def extract_google_docs(source):
     chunks = [x.split('"},')[0].replace('\\n', '\n').replace('\\u000b', '\n') for x in chunks]
     text = ''.join(chunks).strip()
     return text
+
+def extract_ccpa_info(html_file):
+    with open(html_file) as fp:
+        soup = BeautifulSoup(fp, features="html.parser")
+        text = soup.get_text().lower()
+        result = [['CATEGORY']]
+        for category, values in KEYWORDS.items():
+            row = [category]
+            for v in values:
+                if v in text:
+                    row.append(v)
+            if len(row) > 0:
+                result.append(row)
+            else:
+                result.append('N/A')
+        return result
 
 def extract_other(source):
     """
