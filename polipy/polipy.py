@@ -3,13 +3,13 @@ from .extractors import extract, extractors
 from .constants import UTC_DATE, CWD
 from .exceptions import NetworkIOException, ParserException
 from .logger import get_logger
-from bs4 import BeautifulSoup
 
 import os
 import json
 import pathlib
 import hashlib
 import logging
+import csv
 
 # Public module class.
 class Policy:
@@ -145,6 +145,7 @@ class Policy:
             'pdf': os.path.join(policy_output_dir, '{}.{}'.format(UTC_DATE, 'pdf')),
             'txt': os.path.join(policy_output_dir, '{}.{}'.format(UTC_DATE, 'txt')),
             'meta': os.path.join(policy_output_dir, '{}.{}'.format(UTC_DATE, 'meta')),
+            'csv': os.path.join(policy_output_dir, '{}.{}'.format(UTC_DATE, 'csv')),
         }
 
         meta = {'last_scraped': UTC_DATE} | self.url
@@ -168,6 +169,11 @@ class Policy:
         if len(self.url) > 0:
             with open(output['meta'], 'w') as f:
                 json.dump(meta, f)
+        if self.html_file is not None:
+            with open(output['csv'], 'w') as f:
+                writer = csv.writer(f)
+                for row in self.content['keywords']:
+                    writer.writerow(row)
 
     def to_dict(self):
         """
