@@ -1,12 +1,14 @@
 import os
 from setuptools import setup, find_packages
 
+# Setup Script for pip Or manually install via the command line with python setup.py install
+
 # The directory containing this file.
 WORK_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # The text of the README file.
 README = os.path.join(WORK_DIR, 'README.md')
-with open(README, 'r') as f:
+with open(README, 'r', encoding='utf8') as f:
     long_description = f.read()
 
 setup(
