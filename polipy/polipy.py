@@ -1,4 +1,4 @@
-from .networking import get_url_type, parse_url, scrape
+from .networking import get_url, parse_url, scrape_url
 from .extractors import extract, extractors
 from .constants import UTC_DATE, CWD
 from .exceptions import NetworkIOException, ParserException
@@ -8,7 +8,6 @@ import os
 import json
 import pathlib
 import hashlib
-import logging
 
 # Public module class.
 class Policy:
@@ -29,7 +28,7 @@ class Policy:
 
     def __init__(self, url):
         """
-        Constructor method. Populates the `Policy.url` attribute.
+        Constructor method. Initializes Policy object and populates the `Policy.url` attribute.
 
         Parameters
         ----------
@@ -46,6 +45,15 @@ class Policy:
         # Define the output directory name for this policy.
         d, h = self.url['domain'].replace('.', '_'), self.url['hash']
         self.output_dir = '{}_{}'.format(d, h)
+
+        # Initialize 'Policy.source' attribute  
+        self.source['static_html'] = None
+        self.source['static_html_coded'] = None
+        self.source['dynamic_html'] = None
+        self.source['png'] = None
+
+        # Initialize 'Policy.content' attribute
+        self.content['text'] = None
 
     def scrape(self, screenshot=False, timeout=30):
         """
@@ -72,14 +80,14 @@ class Policy:
         NetworkIOException
             Raised if an error occured while performing networking I/O.
         """
-        self.url['type'], self.source['static_html'] = get_url_type(self.url['url'], timeout)
+        self.url['type'], self.source['static_html'], self.source['static_html_coded'] = get_url(self.url['url'], timeout)
         if self.url['type'] in ['html', 'pdf']:
-            self.source = self.source | scrape(self.url['url'], screenshot=screenshot, timeout=timeout)
+            self.source = self.source | scrape_url(self.url['url'], screenshot=screenshot, timeout=timeout)
         else:
             self.source['dynamic_html'] = self.source['static_html']
         return self
 
-    def extract(self, extractors=['text']):
+    def extract(self, extractors=extractors):
         """
         Extracts information from the scraped privacy policy.
 
@@ -100,12 +108,12 @@ class Policy:
         Raises
         ------
         ParserException
-            Raised if an error occured while extracting text from page source.
+            Raised if an error occurred while extracting text from page source.
         """
         vargs = {
             'url': self.url['url'],
             'url_type': self.url['type'],
-            'static_source': self.source['static_html'],
+            'static_source': self.source['static_html_coded'],
             'dynamic_source': self.source['dynamic_html'],
         }
         for extractor in extractors:
@@ -148,7 +156,7 @@ class Policy:
 
         # Save results.
         if 'dynamic_html' in self.source and self.source['dynamic_html'] is not None:
-            with open(output['html'], 'w') as f:
+            with open(output['html'], 'w', encoding='utf8') as f:
                 f.write(self.source['dynamic_html'])
         if 'png' in self.source and self.source['png'] is not None:
             with open(output['png'], 'wb') as f:
@@ -157,10 +165,10 @@ class Policy:
             with open(output['json'], 'w') as f:
                 json.dump(self.content, f)
         if self.url['type'] == 'pdf' and 'static_html' in self.source and self.source['static_html'] is not None:
-            with open(output['pdf'], 'w') as f:
-                f.write(self.source['static_html'])
+            with open(output['pdf'], 'wb') as f:
+                f.write(self.source['static_html_coded'])
         if self.url['type'] == 'plain' and 'static_html' in self.source and self.source['static_html'] is not None:
-            with open(output['txt'], 'w') as f:
+            with open(output['txt'], 'w', encoding='utf8') as f:
                 f.write(self.source['static_html'])
         if len(self.url) > 0:
             with open(output['meta'], 'w') as f:
@@ -176,9 +184,18 @@ class Policy:
             Dictionary containing policy attributes as key-value pairs.
         """
         obj = {
-            'url': self.url,
-            'source': self.source,
-            'content': self.content
+            'url': self.url['url'],
+            'url_scheme': self.url['scheme'],
+            'url_domain': self.url['domain'],
+            'url_path': self.url['domain'],
+            'url_params': self.url['params'],
+            'url_query': self.url['query'],
+            'url_fragment': self.url['fragment'],
+            'url_hash': self.url['hash'],
+            'source_static_html': self.source['static_html'],
+            'source_dynamic_html': self.source['dynamic_html'],
+            'source_png': self.source['png'],
+            'content_text': self.content['text']
         }
         return obj
 
@@ -186,7 +203,7 @@ class Policy:
         return '{}({})'.format(self.__class__, self.to_dict())
 
 # Public module methods.
-def get_policy(url, screenshot=False, timeout=30, extractors=['text'], **kwargs):
+def get_policy(url, raise_errors=False, logger=None, screenshot=False, timeout=30, extractors=['text'], **kwargs):
     """
     Helper method that returns a `polipy.Policy` object containing
     information about the policy, scraped and processed from the given URL.
@@ -218,9 +235,35 @@ def get_policy(url, screenshot=False, timeout=30, extractors=['text'], **kwargs)
     ParserException
         Raised if an error occured while extracting text from page source.
     """
+    # Get handle on the logger object.
+    logger = logger if logger is not None else get_logger()
+
+    # Get policy object with the associated URL.
     policy = Policy(url)
-    policy.scrape(screenshot=screenshot, timeout=timeout)
-    policy.extract(extractors=extractors)
+    logger.info('Policy Object Initialized')
+
+    # Scrape the policy.
+    try:
+        policy.scrape(screenshot=screenshot, timeout=timeout)
+    except NetworkIOException as e:
+        if raise_errors:
+            raise e from None
+        logger.warning('Encountered a network exception while scraping policy from {} -- skipping.\n{}'.format(url, e))
+        return
+    logger.info('Scraped Policy URL Successfully')
+
+    # Extract information from policy.
+    try: 
+        policy.extract(extractors=extractors)
+    except ParserException as e:
+        if raise_errors:
+            raise e from None
+        logger.warning('Encountered a parsing exception while extracting content from {} -- skipping.\n{}'.format(url, e))
+        return
+    logger.info('Extracted Policy Content Successfully')
+
+
+    # Return Policy Object
     return policy
 
 def download_policy(url, output_dir=CWD, force=False, raise_errors=False, logger=None, screenshot=False, timeout=30, extractors=['text'], **kwargs):
@@ -264,7 +307,7 @@ def download_policy(url, output_dir=CWD, force=False, raise_errors=False, logger
         Raised if an error occured while extracting text from page source.
     """
     # Get handle on the logger object.
-    logger = logger if logger is not None else logging.getLogger('polipy')
+    logger = logger if logger is not None else get_logger()
 
     # Get policy object with the associated URL.
     policy = Policy(url)
@@ -289,7 +332,13 @@ def download_policy(url, output_dir=CWD, force=False, raise_errors=False, logger
         return
 
     # Extract information from policy.
-    policy.extract(extractors=extractors)
+    try: 
+        policy.extract(extractors=extractors)
+    except ParserException as e:
+        if raise_errors:
+            raise e from None
+        logger.warning('Encountered a parsing error while extracting content from {} -- skipping.\n{}'.format(url, e))
+        return 
 
     # Skip saving the file if the policy did not change unless force flag is set.
     N = len([x for x in files if x.endswith('.json')])

@@ -6,7 +6,10 @@ from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.common.exceptions import TimeoutException, WebDriverException
 
-def get_url_type(url, timeout):
+import http.client
+http.client._MAXHEADERS = 1000
+
+def get_url(url, timeout):
     """
     https://stackoverflow.com/questions/38690586/determine-if-url-is-a-pdf-or-html-file
     """
@@ -24,7 +27,7 @@ def get_url_type(url, timeout):
         url_type = 'plain'
     else:
         url_type = 'other'
-    return url_type, r.content.decode(errors='ignore')
+    return url_type, r.content.decode(errors='ignore').strip(), r.content.strip()
 
 def parse_url(url):
     parsed = urlparse(url)
@@ -38,7 +41,7 @@ def parse_url(url):
     }
     return result
 
-def scrape(url, screenshot, timeout):
+def scrape_url(url, screenshot, timeout):
     options = Options()
     options.add_argument('-headless')
     options.add_argument('-private')
@@ -47,8 +50,8 @@ def scrape(url, screenshot, timeout):
     response = {}
     try:
         driver.get(url)
-        response['dynamic_html'] = driver.page_source
-        response['png'] = driver.get_screenshot_as_png() if screenshot else None
+        response['dynamic_html'] = driver.page_source.strip()
+        if screenshot: response['png'] = driver.get_screenshot_as_png() 
     except (TimeoutException, WebDriverException) as e:
         raise NetworkIOException(e) from None
     finally:

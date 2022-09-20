@@ -1,6 +1,8 @@
 from bs4 import BeautifulSoup
-from io import BytesIO, StringIO
+from io import BytesIO
 from pdfminer.high_level import extract_text as parse_pdf
+from .exceptions import ParserException
+
 
 extractors = [
     'text'
@@ -8,7 +10,13 @@ extractors = [
 
 def extract(extractor, **kwargs):
     if extractor == 'text':
-        content = extract_text(**kwargs)
+        try:
+            content = extract_text(**kwargs)
+        except:
+            raise ParserException('Extracting Error Occurred while using the "text" extractor') from None
+    # Raise Error if content is NULL
+    if(len(content) == 0):
+        raise ParserException('Content is Null') from None
     return content
 
 def extract_text(url_type, url=None, dynamic_source=None, static_source=None, **kwargs):
@@ -17,14 +25,13 @@ def extract_text(url_type, url=None, dynamic_source=None, static_source=None, **
     elif url_type == 'pdf':
         content = extract_pdf(static_source)
     elif url_type == 'plain':
-        content = dynamic_source
+        content = dynamic_source.strip()
     else:
-        print(url_type, url)
-        content = dynamic_source
+        raise ParserException('URL Type is Unrecognized') from None
     return content
 
 def extract_pdf(source):
-    f = BytesIO(source.encode())
+    f = BytesIO(source)
     text = parse_pdf(f)
     return text.strip()
 
