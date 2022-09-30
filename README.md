@@ -135,7 +135,8 @@ Returns:
 * `polipy.Policy`: Object containing information about the privacy policy.
 
 Raises:
-* `polipy.NetworkIOException`: Raised if an error has occured while performing networking I/O.
+* `polipy.NetworkIOException`: Raised if an error has occurred while performing networking I/O.
+* `polipy.ParserException`: Raised if an error occurred while extracting text from page source.
 
 ### download_policy
 Helper method that scrapes, parses, and saves the privacy policy located at the provided `url` by creating the following directory structure:
@@ -158,8 +159,8 @@ Parameters:
 * `extractors (list of str, optional)`: Extractors to use to capture information from the privacy policy (default is `["text"]`).
 
 Raises:
-* `polipy.NetworkIOException`: Raised if an error has occured while performing networking I/O.
-* `polipy.ParserException`: Raised if an error occured while extracting text from page source.
+* `polipy.NetworkIOException`: Raised if an error has occurred while performing networking I/O.
+* `polipy.ParserException`: Raised if an error occurred while extracting text from page source.
 
 ### Policy
 
@@ -184,7 +185,7 @@ Returns:
 * `polipy.Policy`: `Policy` object with the populated attribute.
 
 Raises:
-* `polipy.NetworkIOException`: Raised if an error has occured while performing networking I/O.
+* `polipy.NetworkIOException`: Raised if an error has occurred while performing networking I/O.
 
 #### extract
 Extracts information from the scraped privacy policy. Populates the `Policy.content` attribute. Parameters:
@@ -195,7 +196,7 @@ Returns:
 * `polipy.Policy`: `Policy` object with the populated attribute.
 
 Raises:
-* `polipy.ParserException`: Raised if an error occured while extracting text from page source.
+* `polipy.ParserException`: Raised if an error occurred while extracting text from page source.
 
 #### save
 Saves the information contained in the `Policy` object. Parameters:

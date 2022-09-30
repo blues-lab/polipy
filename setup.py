@@ -13,11 +13,13 @@ with open(README, 'r', encoding='utf8') as f:
 
 setup(
     name='polipy',
-    version='0.1.3',
+    version='0.1.4',
     description='Library for scraping, parsing, and analyzing privacy policies.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/blues-lab/polipy',
+    author='Berkeley Lab for Usable and Experimental Security (BLUES)',
+    author_email='blues@berkeley.edu',
     license='GNU General Public License v3.0 (GPLv3)',
     classifiers=[
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
